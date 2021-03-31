@@ -70,16 +70,20 @@ namespace ViewModel
 {
      class CategoriesList : FullScreen
      {
+         // The page will load instantly from the latest cache. No waiting.
          public Bindable<Category[]> Source => Api.Categories.Latest;
          
          protected override void OnNavigationStarted()
-         {
-             // This method will call the server to attempt getting the latest data.
-             // If anything was changed, the Bindable value will simply change. Otherwise the latest cache will be used.
-             // The page will load instantly from the latest page, and if new data actually arrived, the UI will update to reflect that.
-             // So no action is needed by you, and yet you get the best mix of performance and up-to-date-ness possible.
+         {   
+             // This will attempt to get fresh data from the server. 
+             // If anything was changed, the normal binding engine will update the UI.              
+             // No further action is required by you.
              Api.Categories.Latest.TryRefresh(); 
          }
      }
 }
 ```
+This mechanism will mean that:
+ - Your UI is rendered instantly (from the latest cache).
+ - If there is new data, you will get that and update the UI with no added delay
+ - You get the best of performance and recency. No compromise.
