@@ -1,4 +1,4 @@
-# Olive.ApiClient
+# How to use
 
 Imagine you have the following classes in your mobile project:
 
