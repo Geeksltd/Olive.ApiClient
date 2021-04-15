@@ -1,13 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using Olive.ApiClient.Services;
+using System;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Olive.ApiClient
 {
-    public abstract partial class RemoteSource<TResponse> : RemoteOperation
+    public class RemoteSource : RemoteOperation
+    {
+        protected async Task<TResponse> FetchData<TResponse>(string url, FileInfo cacheFile)
+        {
+            var apiResult = await ApiService.Get<TResponse>(url);
+
+            if (cacheFile.Exists())
+            {
+                string localCachedVersion = (await cacheFile.ReadAllTextAsync()).CreateSHA1Hash();
+
+                if (localCachedVersion.IsEmpty()) throw new Exception("Local cached file's hash is empty!");
+
+                var newResponseCache = JsonConvert.SerializeObject(apiResult).CreateSHA1Hash();
+
+                if (newResponseCache == localCachedVersion)
+                    throw new Exception("Same response. No update needed!");
+            }
+            return apiResult;
+        }
+    }
+
+    public abstract partial class RemoteSource<TResponse> : RemoteSource
     {
         /// <summary>
         /// Holds the latest result of the API Call. 
@@ -22,19 +42,30 @@ namespace Olive.ApiClient
 
         /// <summary>
         /// Will attempt a refresh, but will not throw an error in case of an exception.
-        /// If it was successful and the response was different from the latest cache, Latest the value of 
+        /// If it was successful and the response was different from the latest cache, updates the value of Latest
         /// </summary>
-        public virtual void TryRefresh()
+        public virtual async Task<bool> TryRefresh()
         {
+            try
+            {
+                var result = await FetchData<TResponse>(Url, CacheFile);
+                return await PersistCache(result);
+            }
+            catch (Exception ex)
+            {
+                Failed?.Invoke(ex);
+                return false;
+            }
         }
 
         /// <summary>
         /// Will attempt to refresh. It throws an exception if failed.
         /// Call this in a try/catch block, or use TryRefresh() instead.
         /// </summary>
-        public virtual Task RefreshOrFail()
+        public async virtual Task RefreshOrFail()
         {
-            throw new NotImplementedException();
+            var result = await FetchData<TResponse>(Url, CacheFile);
+            await PersistCache(result);
         }
 
         /// <summary>
@@ -42,5 +73,9 @@ namespace Olive.ApiClient
         /// </summary>
         protected abstract string Url { get; }
 
+        /// <summary>
+        /// The default cache choice is Accept.         
+        /// </summary>
+        protected virtual CacheChoice Cache => CacheChoice.Accept;
     }
 }
