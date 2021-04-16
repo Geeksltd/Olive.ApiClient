@@ -1,4 +1,14 @@
-# How to use
+# Olive API Client
+This is a library to provide a simple interface for dealing with Web Apis.
+It works perfectly with MvvM programming model using Bindable<....> objects.
+
+Benefits:
+- It has a simple decalarive API
+- It needs minimum effort from the developer
+- It's super fast and cached by default
+- It's fresh and auto-updated upon receiving a simple TryRefresh signal
+- It's resilient and fault tolerant
+
 
 ## Scneario 1: Simple Get Api
 
