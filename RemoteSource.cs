@@ -21,7 +21,8 @@ namespace Olive.ApiClient
                 var newResponseCache = JsonConvert.SerializeObject(apiResult).CreateSHA1Hash();
 
                 if (newResponseCache == localCachedVersion)
-                    throw new Exception("Same response. No update needed!");
+                    // Same response. No update needed!
+                    return default;
             }
             return apiResult;
         }
@@ -40,6 +41,8 @@ namespace Olive.ApiClient
         /// </summary>
         public event Action<Exception> Failed;
 
+        public static event Action<Exception> FailureWarning;
+
         /// <summary>
         /// Will attempt a refresh, but will not throw an error in case of an exception.
         /// If it was successful and the response was different from the latest cache, updates the value of Latest
@@ -54,6 +57,8 @@ namespace Olive.ApiClient
             catch (Exception ex)
             {
                 Failed?.Invoke(ex);
+                if (WarnOnFailure)
+                    FailureWarning?.Invoke(ex);
                 return false;
             }
         }
@@ -73,9 +78,6 @@ namespace Olive.ApiClient
         /// </summary>
         protected abstract string Url { get; }
 
-        /// <summary>
-        /// The default cache choice is Accept.         
-        /// </summary>
-        protected virtual CacheChoice Cache => CacheChoice.Accept;
+        protected abstract bool WarnOnFailure { get; }
     }
 }

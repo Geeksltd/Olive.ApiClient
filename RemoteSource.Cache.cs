@@ -2,58 +2,38 @@
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Olive.ApiClient.Services;
 
 namespace Olive.ApiClient
 {
-    public partial class RemoteSource<TResponse>
+    public abstract partial class RemoteSource<TResponse>
     {
         static object CacheSyncLock = new();
-        public ICache CacheStrategy;
         protected DirectoryInfo CacheFolder;
 
-        public RemoteSource()
+        public RemoteSource(bool isParameterised = false)
         {
             CacheFolder = CacheRoot.GetOrCreateSubDirectory(GetTypeName<TResponse>()).EnsureExists();
-            CacheStrategy = CacheFactory.Create(Cache);
+            if (isParameterised == false)
+                ReadCache();
         }
 
-        public async Task<RemoteSource<TResponse>> Load(Action<TResponse> refresher = null)
-        {
-            if (refresher != null && Cache != CacheChoice.PreferThenUpdate)
-                throw new ArgumentException("Refresher can only be provided when using ApiResponseCache.PreferThenUpdate.");
-
-            if (refresher == null && Cache == CacheChoice.PreferThenUpdate)
-                throw new ArgumentException("When using ApiResponseCache.PreferThenUpdate, refresher must be specified.");
-
-            await CacheStrategy.Run(this, refresher);
-            return this;
-        }
-
-        protected FileInfo CacheFile
-        {
-            get
-            {
-                lock (CacheSyncLock)
-                    return CacheFolder.GetFile(Url.ToSimplifiedSHA1Hash() + ".json");
-            }
-        }
-
-        public async Task<bool> ReadCache()
+        protected void ReadCache()
         {
             if (CacheFile.Exists())
             {
-                var content = await CacheFile.ReadAllTextAsync();
+                var content = CacheFile.ReadAllText();
                 if (content.CreateSHA1Hash().HasValue())
-                {
                     Latest.Value = new StoredBindable<TResponse>(CacheFile);
-                    return true;
-                }
             }
-            return false;
+            else
+            {
+                Latest.Value = GetDefault<TResponse>();
+                if (WarnOnFailure)
+                    FailureWarning?.Invoke(new Exception($"No cache file was found for {Url}."));
+            }
         }
 
-        public async Task<bool> PersistCache(TResponse response)
+        protected async Task<bool> PersistCache(TResponse response)
         {
             if (response == null)
                 return false;
@@ -62,5 +42,16 @@ namespace Olive.ApiClient
             Latest.Value = new StoredBindable<TResponse>(CacheFile);
             return true;
         }
+
+        protected virtual FileInfo CacheFile
+        {
+            get
+            {
+                lock (CacheSyncLock)
+                    return CacheFolder.GetFile(Url.ToSimplifiedSHA1Hash() + ".json");
+            }
+        }
+
     }
+
 }

@@ -1,23 +1,27 @@
-﻿using System.Threading.Tasks;
-
-namespace Olive.ApiClient
+﻿namespace Olive.ApiClient
 {
-    public abstract class RemoteSource<TParam, TResponse> : RemoteSource
-    {
-        protected abstract string GetUrl(TParam arg);
 
-        public async Task<RemoteSource<TResponse>> For(TParam arg)
-        {
-            var remoteSource = new ParameterisedRemoteSource<TResponse>(GetUrl(arg));
-            return await remoteSource.Load();
-        }
+    public abstract class RemoteSource<TParam, TResponse>
+    {
+        protected abstract bool WarnOnFailure { get; }
+        protected abstract string GetUrl(TParam arg);
+        public RemoteSource<TResponse> For(TParam arg) => new ParameterisedRemoteSource<TResponse>(GetUrl(arg), WarnOnFailure);
     }
 
     public class ParameterisedRemoteSource<TResponse> : RemoteSource<TResponse>
     {
-        private readonly string ParameterisedUrl;
-        public ParameterisedRemoteSource(string parameterisedUrl) => ParameterisedUrl = parameterisedUrl;
-        protected override string Url => ParameterisedUrl;
-        protected override CacheChoice Cache => CacheChoice.Prefer;
+        private readonly string _ParameterisedUrl;
+        private readonly bool _WarnOnFailure;
+
+        public ParameterisedRemoteSource(string parameterisedUrl, bool warnOnFailure) : base(isParameterised: true)
+        {
+            _ParameterisedUrl = parameterisedUrl;
+            _WarnOnFailure = warnOnFailure;
+            ReadCache();
+        }
+
+        protected override string Url => _ParameterisedUrl;
+        protected override bool WarnOnFailure => _WarnOnFailure;
     }
+
 }
