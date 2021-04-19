@@ -41,7 +41,7 @@ namespace Olive.ApiClient
         /// </summary>
         public event Action<Exception> Failed;
 
-        public static event Action<Exception> FailureWarning;
+        public event Action<Exception> FailureWarning;
 
         /// <summary>
         /// Will attempt a refresh, but will not throw an error in case of an exception.

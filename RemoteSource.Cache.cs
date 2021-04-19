@@ -10,12 +10,13 @@ namespace Olive.ApiClient
         static object CacheSyncLock = new();
         protected DirectoryInfo CacheFolder;
 
-        public RemoteSource(bool isParameterised = false)
+        public RemoteSource()
         {
             CacheFolder = CacheRoot.GetOrCreateSubDirectory(GetTypeName<TResponse>()).EnsureExists();
-            if (isParameterised == false)
-                ReadCache();
+            ReadCache();
         }
+
+        public RemoteSource(DirectoryInfo cacheFolder) => CacheFolder = cacheFolder;
 
         protected void ReadCache()
         {
@@ -26,11 +27,7 @@ namespace Olive.ApiClient
                     Latest.Value = new StoredBindable<TResponse>(CacheFile);
             }
             else
-            {
                 Latest.Value = GetDefault<TResponse>();
-                if (WarnOnFailure)
-                    FailureWarning?.Invoke(new Exception($"No cache file was found for {Url}."));
-            }
         }
 
         protected async Task<bool> PersistCache(TResponse response)

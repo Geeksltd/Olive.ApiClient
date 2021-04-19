@@ -10,17 +10,17 @@
 
     public class ParameterisedRemoteSource<TResponse> : RemoteSource<TResponse>
     {
-        private readonly string _ParameterisedUrl;
+        private readonly string _Url;
         private readonly bool _WarnOnFailure;
 
-        public ParameterisedRemoteSource(string parameterisedUrl, bool warnOnFailure) : base(isParameterised: true)
+        public ParameterisedRemoteSource(string parameterisedUrl, bool warnOnFailure) : base(CacheRoot.GetOrCreateSubDirectory(GetTypeName<TResponse>()).EnsureExists())
         {
-            _ParameterisedUrl = parameterisedUrl;
+            _Url = parameterisedUrl;
             _WarnOnFailure = warnOnFailure;
             ReadCache();
         }
 
-        protected override string Url => _ParameterisedUrl;
+        protected override string Url => _Url;
         protected override bool WarnOnFailure => _WarnOnFailure;
     }
 
